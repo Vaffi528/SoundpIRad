@@ -2,10 +2,13 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QMessageBox, QRadioButton, QGroupBox, QButtonGroup, QListWidget, QTextEdit, QLineEdit, QInputDialog, QComboBox, QMenu, QMenuBar, QAction, QDialog, QFileDialog
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
-import subprocess
 import multiprocessing
 import json
+
 import sounddevice as sd
+import soundfile as sf
+
+import playsound_
 
 class Main(QWidget):
     def __init__(self):
@@ -120,12 +123,42 @@ class Main(QWidget):
         self.mydile.exec_()
 
     def play(self):
-        filename = self.box.currentText()
-        self.process = multiprocessing.Process(target=playsound, args=(filename,))
-        self.process.start()
+        # terminating all previous processes
+        try: self.terminate()
+        except AttributeError: None
+
+        filename = f'music/{self.box.currentText()}'
+
+        # extracting data and sampling frequency from the file
+        data, fs = sf.read(filename, dtype='float64')  
+
+        # receiving all useful data of the sound devices
+        devices = sd.query_devices(kind='output')
+        devicesall = list(sd.query_devices())
+        hostapis = sd.query_hostapis()
+
+        # setting the idexes of devices with needed api
+        for element in hostapis:
+            if element['name'] == 'MME': #or Windows DirectSound, or Windows WASAPI, or Windows WDM-KS
+                deviceindexes = element['devices']
+                break
+        
+        # finding the index of needed device
+        index = None
+        for element in devicesall:
+            if element['name'].startswith('CABLE Input') and 'VB-Audio' in element['name'] and element['index'] in deviceindexes:
+                index = int(element['index'])
+                break
+        
+        #defining and starting the processes
+        self.process1 = multiprocessing.Process(target=playsound_.playmusic, args=(dict(devices)['index'], data, fs))
+        self.process2 = multiprocessing.Process(target=playsound_.playmusic, args=(index, data, fs))
+        self.process2.start()
+        self.process1.start()
         
     def terminate(self):
-        self.process.terminate()
+        self.process1.terminate()
+        self.process2.terminate()
 
     def run(self):
         self.button4.clicked.connect(self.terminate)
@@ -135,9 +168,10 @@ class Main(QWidget):
         self.show()
         app.exec_()
 
-def playsound(filename):
-    subprocess.run("./venv/Scripts/python.exe VBAplaysound.py", input=(f'music/{filename}').encode('utf-8'))
-
+    def closeEvent(self, event):
+        self.terminate()
+        event.accept()
+        
 if __name__ == "__main__":
     app = QApplication([])
     main = Main()
