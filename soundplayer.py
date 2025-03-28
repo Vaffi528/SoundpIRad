@@ -1,7 +1,7 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QMessageBox, QRadioButton, QGroupBox, QButtonGroup, QListWidget, QTextEdit, QLineEdit, QInputDialog, QComboBox, QMenu, QMenuBar, QAction, QDialog, QFileDialog
+from PyQt5.QtWidgets import QApplication, QSlider, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QMessageBox, QRadioButton, QGroupBox, QButtonGroup, QListWidget, QTextEdit, QLineEdit, QInputDialog, QComboBox, QMenu, QMenuBar, QAction, QDialog, QFileDialog
 from PyQt5 import QtGui
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 import multiprocessing
 import json
 
@@ -14,8 +14,15 @@ class Main(QWidget):
     def __init__(self):
         super().__init__()
         self.data={"sounds":[]}
+        self.volume = 0.5
         self.setStyleSheet("QWidget{background-color: #6f9bcb;}")
 
+        self.slider = QSlider(Qt.Horizontal, self)
+        self.slider.setMaximum(100)
+        self.slider.setPageStep(1)
+        self.slider.setProperty("value", 50)
+        self.slider.setSliderPosition(50)
+        
         self.button = QPushButton("Play")
         self.button.setFont(QtGui.QFont("Times New Roman", 12))
         self.button2 = QPushButton("Add sound")
@@ -23,7 +30,10 @@ class Main(QWidget):
         self.button4 = QPushButton("Stop")
         self.button4.setFont(QtGui.QFont("Times New Roman", 12))
         self.box = QComboBox()
+        self.box.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.box.customContextMenuRequested.connect(self.showMenu)
         sounds = self.loadsounds()
+        self.data['sounds'] = sounds['sounds']
         try:
             self.box.addItems(sounds['sounds'])
         except:
@@ -65,10 +75,41 @@ class Main(QWidget):
         self.button4.setFixedSize(100, 40)
         self.box.setFixedSize(120, 20)
         self.layout = QVBoxLayout()
+        self.layout.addWidget(self.slider, alignment=Qt.AlignHCenter)
         self.layout.addWidget(self.box, alignment=Qt.AlignHCenter)
         self.layout.addWidget(self.button, alignment=Qt.AlignHCenter)
         self.layout.addWidget(self.button4, alignment=Qt.AlignHCenter)
         self.layout.addWidget(self.button2, alignment=Qt.AlignHCenter)
+
+    def add_sound(self):
+        files = QFileDialog()
+        files.setFileMode(QFileDialog.ExistingFiles)
+        sounds = files.getOpenFileNames(self, "Open files", filter='Audio (*.mp3 *.wav *.ogg)')[0]
+        sounds = list(map(lambda x: x.split('/')[-1], sounds))
+        if sounds == []:
+            return
+        
+        box_items = [self.box.itemText(i) for i in range(self.box.count())]
+        sounds_ = list()
+        for sound in sounds:
+            if sound not in box_items:
+                sounds_.append(sound)
+        
+        self.data['sounds'] = box_items + sounds_
+        self.dumpsounds()
+        self.updatebox()
+
+    def showMenu(self,pos):
+        menu = QMenu()
+        clear_action = menu.addAction("Clear Selection")
+        action = menu.exec_(self.mapToGlobal(pos))
+        if action == clear_action:
+            self.remove()
+    
+    def remove(self):
+        self.box.removeItem(self.box.currentIndex())
+        self.data['sounds'] = [self.box.itemText(i) for i in range(self.box.count())]
+        self.dumpsounds()
 
     def updatebox(self):
         try:
@@ -85,53 +126,22 @@ class Main(QWidget):
         with open('data/data.json', "w", encoding='utf-8') as file:
             json.dump(self.data, file)
 
-    def add_sound(self):
-        def close():
-            filename = self.edit.text()
-            data = self.loadsounds()
-            try:
-                self.data['sounds'] = data['sounds']
-            except:
-                None
-            finally:
-                self.data['sounds'].append(filename)
-            self.dumpsounds()
-            self.updatebox()
-            self.mydile.close()
-
-        self.edit = QLineEdit()
-        self.edit.setFont(QtGui.QFont("Times New Roman", 14))
-        self.edit.setPlaceholderText("type the path of a sound")
-        self.edit.setFixedHeight(40)
-        self.edit.setStyleSheet("""
-        QLineEdit{
-            border: 1px solid #CCD6DD;
-        }
-        """)
-        self.mydile = QDialog()
-        self.mydile.resize(300,200)
-        self.layout1 = QVBoxLayout()
-        self.mydile.setWindowTitle('new sound')
-        self.button3 = QPushButton("Add sound")
-        self.button3.setFont(QtGui.QFont("Times New Roman", 12))
-
-        self.button3.clicked.connect(close)
-
-        self.layout1.addWidget(self.edit, alignment=Qt.AlignHCenter)
-        self.layout1.addWidget(self.button3, alignment=Qt.AlignHCenter)
-        self.mydile.setLayout(self.layout1)
-        self.mydile.exec_()
-
     def play(self):
         # terminating all previous processes
         try: self.terminate()
         except AttributeError: None
 
+        #receiving data about choosen sound
+        boxindex = self.box.currentIndex()
         filename = f'music/{self.box.currentText()}'
 
         # extracting data and sampling frequency from the file
-        data, fs = sf.read(filename, dtype='float64')  
-
+        try: 
+            data, fs = sf.read(filename, dtype='float64')  
+        except: 
+            self.box.removeItem(boxindex)
+            return
+            
         # receiving all useful data of the sound devices
         devices = sd.query_devices(kind='output')
         devicesall = list(sd.query_devices())
@@ -151,8 +161,8 @@ class Main(QWidget):
                 break
         
         #defining and starting the processes
-        self.process1 = multiprocessing.Process(target=playsound_.playmusic, args=(dict(devices)['index'], data, fs))
-        self.process2 = multiprocessing.Process(target=playsound_.playmusic, args=(index, data, fs))
+        self.process1 = multiprocessing.Process(target=playsound_.playmusic, args=(dict(devices)['index'], data, fs, self.volume))
+        self.process2 = multiprocessing.Process(target=playsound_.playmusic, args=(index, data, fs, self.volume))
         self.process2.start()
         self.process1.start()
         
@@ -160,7 +170,11 @@ class Main(QWidget):
         self.process1.terminate()
         self.process2.terminate()
 
+    def set_volume(self):
+        self.volume = self.slider.value()/100
+
     def run(self):
+        self.slider.valueChanged.connect(self.set_volume)
         self.button4.clicked.connect(self.terminate)
         self.button2.clicked.connect(self.add_sound)
         self.button.clicked.connect(self.play)
@@ -169,9 +183,10 @@ class Main(QWidget):
         app.exec_()
 
     def closeEvent(self, event):
-        self.terminate()
-        event.accept()
-        
+        try: self.terminate()
+        except AttributeError: None
+        finally: event.accept()
+
 if __name__ == "__main__":
     app = QApplication([])
     main = Main()
