@@ -15,71 +15,163 @@ class Main(QWidget):
         super().__init__()
         self.data={"sounds":[]}
         self.volume = 0.5
-        self.setStyleSheet("QWidget{background-color: #6f9bcb;}")
+        self.setStyleSheet("QWidget{background-color: #fff;}")
+
+        self.resize(350, 400)
+        self.setWindowTitle('SoundpIRad')
 
         self.slider = QSlider(Qt.Horizontal, self)
         self.slider.setMaximum(100)
         self.slider.setPageStep(1)
         self.slider.setProperty("value", 50)
         self.slider.setSliderPosition(50)
-        
-        self.button = QPushButton("Play")
-        self.button.setFont(QtGui.QFont("Times New Roman", 12))
-        self.button2 = QPushButton("Add sound")
-        self.button2.setFont(QtGui.QFont("Times New Roman", 12))
-        self.button4 = QPushButton("Stop")
-        self.button4.setFont(QtGui.QFont("Times New Roman", 12))
+
+        self.button = QPushButton("")
+        self.button2 = QPushButton("")
+        self.button4 = QPushButton("")
+        self.picture = QPushButton("")
+
         self.box = QComboBox()
         self.box.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.box.setFont(QtGui.QFont("monospace", 12))
         self.box.customContextMenuRequested.connect(self.showMenu)
+
         sounds = self.loadsounds()
         self.data['sounds'] = sounds['sounds']
         try:
             self.box.addItems(sounds['sounds'])
         except:
             self.box.addItems([])
-            
+
+        self.picture.setStyleSheet("""
+            border-radius: 0px;
+            background-image: url("img/sound.png");
+        """)
         self.button.setStyleSheet("""
         QPushButton{
-            font-style: oblique;
-            font-weight: bold;
-            border: 1px solid #1DA1F2;
-            border-radius: 15px;
-            color: #1DA1F2;
-            background-color: #fff;
+            border-radius: 6px;
+            background-image: url("img/play.png");
         }
         """)
-
         self.button2.setStyleSheet("""
         QPushButton{
-            font-style: oblique;
-            font-weight: bold;
-            border: 1px solid #1DA1F2;
-            border-radius: 15px;
-            color: #1DA1F2;
-            background-color: #fff;
+            border-radius: 6px;
+            background-image: url("img/add.png");
         }
         """)
         self.button4.setStyleSheet("""
         QPushButton{
-            font-style: oblique;
-            font-weight: bold;
-            border: 1px solid #1DA1F2;
-            border-radius: 15px;
-            color: #1DA1F2;
-            background-color: #fff;
+            border-radius: 6px;
+            background-image: url("img/pause.png");
+
         }
         """)
-        self.button.setFixedSize(100, 40)
-        self.button2.setFixedSize(100, 40)
-        self.button4.setFixedSize(100, 40)
-        self.box.setFixedSize(120, 20)
+        
+        self.box.setStyleSheet("""
+        QComboBox {
+        color: rgb(80,80,80);
+        background: #f1f1f1;
+        border-width: 1px;
+        border-style: solid;
+        border-color: #f1f1f1;  
+        border-radius: 4px;   
+    }
+
+    QComboBox:hover {
+        border-color: #d7d7d7;   
+    }
+    
+    QComboBox:on {
+        border-bottom-width: 3px;
+        border-bottom-color: #f1f1f1;
+        border-bottom-right-radius: 0px;
+        border-bottom-left-radius: 0px;
+    }
+
+    QComboBox::drop-down:on {
+        border-bottom-right-radius: 0px;
+    }
+
+    QComboBox QAbstractItemView {
+        color: rgb(80,80,80);
+        background: #f1f1f1;
+        border-width: 1px;
+        border-style: solid;
+        border-color: #d7d7d7;
+        selection-background-color: rgb(200, 200, 200);
+        selection-color: rgb(25, 25, 25);
+        }
+
+    QComboBox::drop-down {
+        background: #f1f1f1;
+    }
+
+    QComboBox::down-arrow {
+        background: #f1f1f1;
+        width: 13px;
+        height: 13px;
+    }
+
+    QComboBox::down-arrow:on {
+        background-color: #f1f1f1;
+        width: 13px;
+        height: 13px;
+    } 
+    """)
+        self.slider.setStyleSheet("""
+        QSlider::groove:horizontal {
+    height: 40px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #B1B1B1, stop:1 #c4c4c4);
+    border-radius: 4px;   
+    background-color: #f1f1f1;
+    margin: 2px 0;
+}
+
+QSlider::handle:horizontal {
+    width: 20px;
+    background: #d9d9d9;
+    border-radius: 4px;
+    margin: 0; /* expand outside the groove */
+}
+
+QSlider::add-page:horizontal {
+    background: #f1f1f1;
+    border-radius: 4px;
+    margin: 2px 0;
+}
+
+QSlider::sub-page:horizontal {
+    background: #d9d9d9;
+    border-radius: 4px;
+    margin: 2px 0;
+}
+
+        """)
+        self.picture.setFixedSize(40, 40)
+        self.button.setFixedSize(72, 63)
+        self.button2.setFixedSize(63, 63)
+        self.button4.setFixedSize(72, 63)
+        self.box.setFixedHeight(40)
+        self.slider.setFixedHeight(40)
         self.layout = QVBoxLayout()
-        self.layout.addWidget(self.slider, alignment=Qt.AlignHCenter)
+        self.layoutH = QHBoxLayout()
+        self.layouth = QHBoxLayout()
+        self.layouth.addWidget(self.picture)
+        self.layouth.addWidget(self.slider)
+        self.layout.addLayout(self.layouth)
+        self.layout.addWidget(self.box)
+        self.layout.addStretch(1)
+        self.layout.addLayout(self.layoutH)
+        self.layoutH.addWidget(self.button, alignment=Qt.AlignLeft)
+        self.layoutH.addWidget(self.button4, alignment=Qt.AlignLeft)
+        self.layoutH.addStretch(1)
+        self.layoutH.addWidget(self.button2, alignment=Qt.AlignRight)
+        '''self.layout.addWidget(self.slider, alignment=Qt.AlignHCenter)
         self.layout.addWidget(self.box, alignment=Qt.AlignHCenter)
-        self.layout.addWidget(self.button, alignment=Qt.AlignHCenter)
-        self.layout.addWidget(self.button4, alignment=Qt.AlignHCenter)
-        self.layout.addWidget(self.button2, alignment=Qt.AlignHCenter)
+        self.layoutH.addWidget(self.button)
+        self.layoutH.addWidget(self.button4)
+        self.layoutH.addWidget(self.button2)
+        self.layout.addLayout(self.layoutH)'''
 
     def add_sound(self):
         files = QFileDialog()
@@ -128,8 +220,7 @@ class Main(QWidget):
 
     def play(self):
         # terminating all previous processes
-        try: self.terminate()
-        except AttributeError: None
+        self.terminate()
 
         #receiving data about choosen sound
         boxindex = self.box.currentIndex()
@@ -167,8 +258,10 @@ class Main(QWidget):
         self.process1.start()
         
     def terminate(self):
-        self.process1.terminate()
-        self.process2.terminate()
+        try:
+            self.process1.terminate()
+            self.process2.terminate()
+        except AttributeError: None
 
     def set_volume(self):
         self.volume = self.slider.value()/100
@@ -184,7 +277,7 @@ class Main(QWidget):
 
     def closeEvent(self, event):
         try: self.terminate()
-        except AttributeError: None
+        except: None
         finally: event.accept()
 
 if __name__ == "__main__":
