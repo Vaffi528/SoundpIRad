@@ -1,0 +1,26 @@
+QSlider::groove:horizontal {
+    height: 40px; /* the groove expands to the size of the slider by default. by giving it a height, it has a fixed size */
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #B1B1B1, stop:1 #c4c4c4);
+    border-radius: 4px;   
+    background-color: #f1f1f1;
+    margin: 2px 0;
+}
+
+QSlider::handle:horizontal {
+    width: 20px;
+    background: #d9d9d9;
+    border-radius: 4px;
+    margin: 0; /* expand outside the groove */
+}
+
+QSlider::add-page:horizontal {
+    background: #f1f1f1;
+    border-radius: 4px;
+    margin: 2px 0;
+}
+
+QSlider::sub-page:horizontal {
+    background: #d9d9d9;
+    border-radius: 4px;
+    margin: 2px 0;
+}
