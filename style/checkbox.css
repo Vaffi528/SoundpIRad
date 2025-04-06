@@ -1,0 +1,23 @@
+QCheckBox {
+    spacing: 9px;
+    padding-left: 20px;
+}
+
+QCheckBox::indicator {
+    width: 20px;
+    height: 20px;
+}
+
+QCheckBox::indicator:unchecked {
+    image: url("img/auto.png");
+}
+QCheckBox::indicator:unchecked:hover {
+    image: url("img/autohover.png");
+}
+QCheckBox::indicator:checked {
+    image: url("img/autochecked.png");
+}
+
+QCheckBox::indicator:checked:hover {
+    image: url("img/autocheckedhover.png");
+}

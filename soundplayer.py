@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QSlider, QDialogButtonBox, QTabWidget, QWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QMessageBox, QCheckBox, QListWidget, QTextEdit, QLineEdit, QInputDialog, QComboBox, QMenu, QMenuBar, QAction, QDialog, QFileDialog
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
+
 import multiprocessing
 import json
 import copy
@@ -89,24 +90,30 @@ class Main(QWidget):
         self.layoutH.addWidget(self.button5)
 
     def add_sound(self):
+        #getting music from user
         files = QFileDialog()
         files.setFileMode(QFileDialog.ExistingFiles)
         sounds = files.getOpenFileNames(self, "Open files", filter='Audio (*.mp3 *.wav *.ogg)')[0]
         sounds = list(map(lambda x: x.split('/')[-1], sounds))
+
+        #check if user didnt choose anything
         if sounds == []:
             return
         
+        #extracting all new files form the choosen music
         box_items = [self.box.itemText(i) for i in range(self.box.count())]
         sounds_ = list()
         for sound in sounds:
             if sound not in box_items:
                 sounds_.append(sound)
         
+        #concatenating new and old files and updating the combobox and data
         self.data['sounds'] = box_items + sounds_
         self.dumps()
         self.updatebox()
 
     def settings(self):
+        #terminating all the processes and calling settings window
         self.terminate()
         SettingsWindow(self)
 
@@ -218,37 +225,41 @@ class SettingsWindow(QDialog):
     def __init__(self, main):
         super().__init__()
 
-        self.data = copy.deepcopy(main.data)
+        self.main = main
+        self.data = copy.deepcopy(self.main.data)
 
-        self.resize(450,250)
+        self.resize(500,250)
         self.setWindowTitle('Settings')
 
         tabs = QTabWidget()
-        tabs.addTab(FirstTab(main), "devices")
+        tabs.addTab(FirstTab(self.main), "devices")
         tabs.addTab(SecondTab(), "shortcuts")
         tabs.addTab(ThirdTab(), "info")
-
+        
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        buttons.accepted.connect(lambda: self.accept(main))
-        buttons.rejected.connect(lambda: self.reject(main))
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        buttons.setFont(QtGui.QFont("monospace", 12))
+        tabs.setStyleSheet(Path('style/tab.css').read_text())
         buttons.setStyleSheet(Path('style/dialogbutton.css').read_text())
 
         V = QVBoxLayout()
         V.addWidget(tabs)
         V.addWidget(buttons)
-
+        
         self.setLayout(V)
         self.exec_()
 
-    def accept(self, main):
+    def accept(self):
         #script of OK button
-        main.dumps()
-        main.check_device = not main.data['auto']
+        self.main.dumps()
+        self.main.check_device = not self.main.data['auto']
         return super().accept()
     
-    def reject(self, main):
+    def reject(self):
         #script of Cancel button
-        main.data = self.data
+        self.main.data = self.data
         return super().reject()
 
 class FirstTab(QWidget):
@@ -283,12 +294,23 @@ class FirstTab(QWidget):
         self.box1 = QComboBox()
         self.box1.addItems(devices)
         self.box1.setCurrentText(device0)
-        self.label1 = QLabel('Your device:')
+        self.label1 = QLabel('Device')
 
         self.box2 = QComboBox()
         self.box2.addItems(devices)
         self.box2.setCurrentText(device1)
-        self.label2 = QLabel('Your virtual cable:')
+        self.label2 = QLabel('Virtual cable')
+
+        self.box1.setStyleSheet(Path('style/devicebox.css').read_text())
+        self.box2.setStyleSheet(Path('style/devicebox.css').read_text())
+        self.flagbutton.setStyleSheet(Path('style/checkbox.css').read_text())
+        self.label1.setFont(QtGui.QFont("monospace", 10))
+        self.label2.setFont(QtGui.QFont("monospace", 10))
+        self.flagbutton.setFont(QtGui.QFont("monospace", 10))
+
+        self.box1.setFixedHeight(25)
+        self.box2.setFixedHeight(25)
+
         if main.data['auto'] == True:
             self.box1.setEnabled(0)
             self.box2.setEnabled(0)
